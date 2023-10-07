@@ -3,36 +3,67 @@ import json
 import requests
 from googleapiclient.discovery import build
 
+from src.implemented import youtube
+
 
 class Channel:
     """Класс для ютуб-канала"""
-
+    __youtube_api = youtube
     def __init__(self, channel_id: str) -> None:
         """Экземпляр инициализируется id канала. Дальше все данные будут подтягиваться по API."""
-        self.channel_id = channel_id
-        self.title = ''
-        self.description = ''
-        self.url = ''
-        self.subscriber_count = 0
-        self.video_count = 0
-        self.view_count = 0
+
+        self.__channel_id = channel_id
+        self._channel = self.__youtube_api.channels().list(id=channel_id, part='snippet,statistics').execute()
+        self.title = self._channel['items'][0]['snippet']['title']
+        self.description = self._channel['items'][0]['snippet']['description']
+        self.url = self._channel['items'][0]['snippet']['thumbnails']['default']['url']
+        self.subscriber_count = int(self._channel['items'][0]['statistics']['subscriberCount'])
+        self.video_count = int(self._channel['items'][0]['statistics']['videoCount'])
+        self.view_count = int(self._channel['items'][0]['statistics']['viewCount'])
+
+    def __add__(self, other):
+        return self.subscriber_count + other.subscriber_count
+
+    def __sub__(self, other):
+        return self.subscriber_count - other.subscriber_count
+
+    def __gt__(self, other):
+        return self.subscriber_count > other.subscriber_count
+
+    def __ge__(self, other):
+        return self.subscriber_count >= other.subscriber_count
+    def __lt__(self, other):
+        return self.subscriber_count < other.subscriber_count
+
+    def __le__(self, other):
+        return self.subscriber_count <= other.subscriber_count
+
+    def __eq__(self, other):
+        return self.subscriber_count == other.subscriber_count
+
+    @property
+    def channel(self):
+        return self.__channel_id
 
     def print_info(self):
         """Выводит в консоль информацию о канале в json формате."""
 
-        api_key = "AIzaSyCg8I_OJBrkfqsq_KihzECdLwGtRhbNMLU"
-        youtube = build('youtube', 'v3', developerKey=api_key)
 
-        channel_id = self.channel_id
-        channel = youtube.channels().list(id=channel_id, part='snippet,statistics').execute()
+        channel = youtube.channels().list(id=self.__channel_id, part='snippet,statistics').execute()
         print(json.dumps(channel, indent=2, ensure_ascii=False))
+
+    @property
+    def youtube_api(self):
+        return self.__youtube_api
+
+
     @classmethod
     def get_service(cls):
         """Возвращает объект для работы с YouTube API."""
 
-        api_key = "AIzaSyCg8I_OJBrkfqsq_KihzECdLwGtRhbNMLU"
-        youtube_service = build("youtube", 'v3', developerKey=api_key)
-        return youtube_service
+        return cls.youtube_api
+
+
     def to_json(self, filename):
         channel_data = {
             "channel_id":self.channel_id,
@@ -57,22 +88,3 @@ channel1 = Channel("UC-OVMPlMA3-YCIeg4z5z23A")
 channel1.print_info()
 
 
-
-
-# Второй возможный вариант, но без вывода статистики
-#     def print_info(self):
-#         """Выводит в консоль информацию о канале."""
-#         api_key = "AIzaSyCg8I_OJBrkfqsq_KihzECdLwGtRhbNMLU"
-#         channel_id = self.channel_id
-#         url = f"https://www.googleapis.com/youtube/v3/channels?part=snippet&id={channel_id}&key={api_key}"
-#
-#         response = requests.get(url)
-#
-#         data = response.json()
-#
-#
-#         print(json.dumps(data, indent=2, ensure_ascii=False))
-#
-#
-# channel1 = Channel("UC-OVMPlMA3-YCIeg4z5z23A")
-# channel1.print_info()
